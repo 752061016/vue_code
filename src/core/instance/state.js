@@ -300,13 +300,13 @@ function initWatch (vm: Component, watch: Object) {
   }
 }
 
-function createWatcher (
+function createWatcher ( //创建监听者 vm实例
   vm: Component,
   expOrFn: string | Function,
   handler: any,
   options?: Object
 ) {
-  if (isPlainObject(handler)) {
+  if (isPlainObject(handler)) { //为对象
     options = handler
     handler = handler.handler
   }
@@ -324,8 +324,8 @@ export function stateMixin (Vue: Class<Component>) {
   dataDef.get = function () { return this._data }
   const propsDef = {}
   propsDef.get = function () { return this._props }
-  if (process.env.NODE_ENV !== 'production') {
-    dataDef.set = function () {
+  if (process.env.NODE_ENV !== 'production') {//非生产模式  在生产模式下 $data和$props两个属性是只读的  无法修改
+    dataDef.set = function () {//响应追踪
       warn(
         'Avoid replacing instance root $data. ' +
         'Use nested data properties instead.',
@@ -336,19 +336,19 @@ export function stateMixin (Vue: Class<Component>) {
       warn(`$props is readonly.`, this)
     }
   }
-  Object.defineProperty(Vue.prototype, '$data', dataDef)
+  Object.defineProperty(Vue.prototype, '$data', dataDef) //拦截器
   Object.defineProperty(Vue.prototype, '$props', propsDef)
 
-  Vue.prototype.$set = set
-  Vue.prototype.$delete = del
+  Vue.prototype.$set = set  //../observer/index
+  Vue.prototype.$delete = del //../observer/index
 
-  Vue.prototype.$watch = function (
+  Vue.prototype.$watch = function ( //观察 Vue 实例上的一个表达式或者一个函数计算结果的变化。回调函数得到的参数为新值和旧值。表达式只接受监督的键路径。
     expOrFn: string | Function,
     cb: any,
     options?: Object
   ): Function {
     const vm: Component = this
-    if (isPlainObject(cb)) {
+    if (isPlainObject(cb)) {//简单对象  参数为对象
       return createWatcher(vm, expOrFn, cb, options)
     }
     options = options || {}

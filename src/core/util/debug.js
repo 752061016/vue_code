@@ -8,7 +8,7 @@ export let tip = noop
 export let generateComponentTrace = (noop: any) // work around flow check
 export let formatComponentName = (noop: any)
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production') {//非生产模式
   const hasConsole = typeof console !== 'undefined'
   const classifyRE = /(?:^|[-_])(\w)/g
   const classify = str => str
@@ -65,10 +65,10 @@ if (process.env.NODE_ENV !== 'production') {
     return res
   }
 
-  generateComponentTrace = vm => {
+  generateComponentTrace = vm => { //创建组件追踪
     if (vm._isVue && vm.$parent) {
       const tree = []
-      let currentRecursiveSequence = 0
+      let currentRecursiveSequence = 0 //当前递归序列
       while (vm) {
         if (tree.length > 0) {
           const last = tree[tree.length - 1]

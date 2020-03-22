@@ -198,19 +198,19 @@ export function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
-export function set (target: Array<any> | Object, key: any, val: any): any {
+export function set (target: Array<any> | Object, key: any, val: any): any { //向响应式对象中添加一个属性，并确保这个新属性同样是响应式的，且触发视图更新
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
-  ) {
+  ) { //非生产模式才触发
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
-  if (Array.isArray(target) && isValidArrayIndex(key)) {
-    target.length = Math.max(target.length, key)
-    target.splice(key, 1, val)
-    return val
+  if (Array.isArray(target) && isValidArrayIndex(key)) {//target:数组
+    target.length = Math.max(target.length, key) //最大值
+    target.splice(key, 1, val) //为目标数组添加一个值
+    return val 
   }
-  if (key in target && !(key in Object.prototype)) {
-    target[key] = val
+  if (key in target && !(key in Object.prototype)) { //target为对象
+    target[key] = val //为target对象添加或覆盖一个值
     return val
   }
   const ob = (target: any).__ob__
@@ -233,7 +233,7 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
 /**
  * Delete a property and trigger change if necessary.
  */
-export function del (target: Array<any> | Object, key: any) {
+export function del (target: Array<any> | Object, key: any) { //删除对象的属性。如果对象是响应式的，确保删除能触发更新视图。这个方法主要用于避开 Vue 不能检测到属性被删除的限制
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {

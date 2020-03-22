@@ -43,26 +43,26 @@ export default class Watcher {
   value: any;
 
   constructor (
-    vm: Component,
-    expOrFn: string | Function,
-    cb: Function,
-    options?: ?Object,
+    vm: Component,//当前vue实例
+    expOrFn: string | Function,//监听的值
+    cb: Function,//回调函数
+    options?: ?Object,//配置参数
     isRenderWatcher?: boolean
   ) {
     this.vm = vm
-    if (isRenderWatcher) {
+    if (isRenderWatcher) { //第一次渲染监听器
       vm._watcher = this
     }
-    vm._watchers.push(this)
+    vm._watchers.push(this) //添加一个新的监听器
     // options
-    if (options) {
+    if (options) { //实例对象  无配置则默认全为false
       this.deep = !!options.deep
       this.user = !!options.user
       this.lazy = !!options.lazy
       this.sync = !!options.sync
       this.before = options.before
     } else {
-      this.deep = this.user = this.lazy = this.sync = false
+      this.deep = this.user = this.lazy = this.sync = false 
     }
     this.cb = cb
     this.id = ++uid // uid for batching
@@ -72,7 +72,7 @@ export default class Watcher {
     this.newDeps = []
     this.depIds = new Set()
     this.newDepIds = new Set()
-    this.expression = process.env.NODE_ENV !== 'production'
+    this.expression = process.env.NODE_ENV !== 'production' //生产
       ? expOrFn.toString()
       : ''
     // parse expression for getter
@@ -80,7 +80,7 @@ export default class Watcher {
       this.getter = expOrFn
     } else {
       this.getter = parsePath(expOrFn)
-      if (!this.getter) {
+      if (!this.getter) { //expOrFn为空或不存在
         this.getter = noop
         process.env.NODE_ENV !== 'production' && warn(
           `Failed watching path: "${expOrFn}" ` +

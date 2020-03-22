@@ -353,8 +353,8 @@ export function stateMixin (Vue: Class<Component>) {
     }
     options = options || {}
     options.user = true
-    const watcher = new Watcher(vm, expOrFn, cb, options)
-    if (options.immediate) {
+    const watcher = new Watcher(vm, expOrFn, cb, options) // 创建监听器
+    if (options.immediate) { //immediate为true  该回调将会在侦听开始之后被立即调用
       try {
         cb.call(vm, watcher.value)
       } catch (error) {

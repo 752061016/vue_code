@@ -1,10 +1,15 @@
 /* @flow */
+// 设置平台化的 Vue.config。
+// 在 Vue.options 上混合了两个指令(directives)，分别是 model 和 show。
+// 在 Vue.options 上混合了两个组件(components)，分别是 Transition 和 TransitionGroup。
+// 在 Vue.prototype 上添加了两个方法：__patch__ 和 $mount。
+// Vue.options 以及 Vue.config 和 Vue.prototype 都有所变化  
 
 import Vue from 'core/index' //vue构造函数 src/core/index.js
 import config from 'core/config'
 import { extend, noop } from 'shared/util'
 import { mountComponent } from 'core/instance/lifecycle'
-import { devtools, inBrowser } from 'core/util/index'
+import { devtools, inBrowser } from 'core/util/index' //inBrowser为true  表示在浏览器中
 
 import {
   query,
@@ -19,7 +24,7 @@ import { patch } from './patch'
 import platformDirectives from './directives/index'
 import platformComponents from './components/index'
 
-// install platform specific utils
+// install platform specific utils 覆盖默认导出的Vue.config  与平台有关
 Vue.config.mustUseProp = mustUseProp
 Vue.config.isReservedTag = isReservedTag
 Vue.config.isReservedAttr = isReservedAttr
@@ -27,13 +32,16 @@ Vue.config.getTagNamespace = getTagNamespace
 Vue.config.isUnknownElement = isUnknownElement
 
 // install platform runtime directives & components
+// Vue.options.directives和Vue.options.components原本是空对象  现在要根据平台重新覆盖  
+// 作用是在 Vue.options 上添加 web 平台运行时的特定组件和指令。
 extend(Vue.options.directives, platformDirectives)
 extend(Vue.options.components, platformComponents)
 
-// install platform patch function
-Vue.prototype.__patch__ = inBrowser ? patch : noop
+// install platform patch function 若在浏览器中， vue原型的__patch__则为函数  反之则是一个空函数
+Vue.prototype.__patch__ = inBrowser ? patch : noop 
 
-// public mount method
+// public mount method 
+// 如果 Vue 实例在实例化时没有收到 el 选项，则它处于“未挂载”状态，没有关联的 DOM 元素。可以使用 vm.$mount() 手动地挂载一个未挂载的实例
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
@@ -43,7 +51,8 @@ Vue.prototype.$mount = function (
 }
 
 // devtools global hook
-/* istanbul ignore next */
+/* istanbul ignore next */ 
+// vue-devtools 的全局钩子
 if (inBrowser) {
   setTimeout(() => {
     if (config.devtools) {

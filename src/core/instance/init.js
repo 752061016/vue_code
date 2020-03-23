@@ -10,31 +10,49 @@ import { initLifecycle, callHook } from './lifecycle'
 import { initProvide, initInjections } from './inject'
 import { extend, mergeOptions, formatComponentName } from '../util/index'
 
-let uid = 0
+let uid = 0 //实例标识
 
 export function initMixin (Vue: Class<Component>) { //参数为vue 实例 接口类型  传入的是什么类型  component就为什么类型
-  Vue.prototype._init = function (options?: Object) { //为vue原型添加_init方法 在vue创建时会执行 options为new vue时传入的对象参数
+  Vue.prototype._init = function (options?: Object) { //为vue原型添加_init方法 在new vue创建时会执行 options为new vue时传入的对象参数
     const vm: Component = this  // vm指向当前的vue实例
     // a uid
-    vm._uid = uid++ //状态值 当前uid为1
+    vm._uid = uid++ //每个实例会有个标识  每次实例化后都会++ 初始化为0
 
     let startTag, endTag
     /* istanbul ignore if */
+    // 在非生产环境下，并且 config.performance 和 mark 都为真
+
+    // Vue 提供了全局配置 Vue.config.performance，我们通过将其设置为 true，即可开启性能追踪，你可以追踪四个场景的性能：
+    //     1、组件初始化(component init)
+    //     2、编译(compile)，将模板(template)编译成渲染函数
+    //     3、渲染(render)，其实就是渲染函数的性能，或者说渲染函数执行且生成虚拟DOM(vnode)的性能
+    //     4、打补丁(patch)，将虚拟DOM渲染为真实DOM的性能
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
       startTag = `vue-perf-start:${vm._uid}`
       endTag = `vue-perf-end:${vm._uid}`
       mark(startTag)
     }
 
-    // a flag to avoid this being observed
+
+
+    // a flag to avoid this being observed 避免这种情况被注意到的标志
+    // 目的是用来标识一个对象是 Vue 实例
     vm._isVue = true
-    // merge options
+    // merge options  options._isComponent只有在创建组件时才会存在
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
       initInternalComponent(vm, options)
     } else {
+      // 在 Vue 实例上添加了 $options 属性  在下方一系列的init*的方法中会被用到
+      // 用于当前 Vue 实例的初始化选项。需要在选项中包含自定义属性时会有用处
+      // new Vue({
+      //   customOption: 'foo',
+      //   created: function () {
+      //     console.log(this.$options.customOption) // => 'foo'
+      //   }
+      // })
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -58,7 +76,9 @@ export function initMixin (Vue: Class<Component>) { //参数为vue 实例 接口
     initProvide(vm) // resolve provide after data/props
     callHook(vm, 'created')
 
-    /* istanbul ignore if */
+
+
+    /* istanbul ignore if 同上  性能追踪*/
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
       vm._name = formatComponentName(vm, false)
       mark(endTag)

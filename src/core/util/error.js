@@ -33,7 +33,7 @@ export function handleError (err: Error, vm: any, info: string) {
   }
 }
 
-export function invokeWithErrorHandling (
+export function invokeWithErrorHandling (//使用错误处理调用
   handler: Function,
   context: any,
   args: null | any[],

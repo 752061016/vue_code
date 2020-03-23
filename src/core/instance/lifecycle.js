@@ -55,18 +55,18 @@ export function initLifecycle (vm: Component) {
   vm._isBeingDestroyed = false
 }
 
-export function lifecycleMixin (Vue: Class<Component>) {
+export function lifecycleMixin (Vue: Class<Component>) { //生命周期混入
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
-    const prevEl = vm.$el
+    const prevEl = vm.$el //元素对象
     const prevVnode = vm._vnode
     const restoreActiveInstance = setActiveInstance(vm)
     vm._vnode = vnode
-    // Vue.prototype.__patch__ is injected in entry points
-    // based on the rendering backend used.
+    // Vue.prototype.__patch__ is injected in entry points  在入口点注册
+    // based on the rendering backend used. 基于使用的渲染后端。
     if (!prevVnode) {
       // initial render
-      vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
+      vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly 仅删除 */)
     } else {
       // updates
       vm.$el = vm.__patch__(prevVnode, vnode)

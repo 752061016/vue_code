@@ -269,8 +269,10 @@ const defaultStrat = function (parentVal: any, childVal: any): any {
 
 /**
  * Validate component names
+ * 校验组件的名字是否符合要求
  */
 function checkComponents (options: Object) {
+  // 变量options.components  依次校验
   for (const key in options.components) {
     validateComponentName(key)
   }
@@ -283,6 +285,8 @@ export function validateComponentName (name: string) {
       'should conform to valid custom element name in html5 specification.'
     )
   }
+  // isBuiltInTag 方法的作用是用来检测你所注册的组件是否是内置的标签  与内置标签重名
+  // 判断一个标签是否是保留标签，我们可以知道，如果一个标签是 html 标签，或者是 svg 标签，那么这个标签即是保留标签
   if (isBuiltInTag(name) || config.isReservedTag(name)) {
     warn(
       'Do not use built-in or reserved HTML elements as component ' +
@@ -296,22 +300,23 @@ export function validateComponentName (name: string) {
  * Object-based format.
  */
 function normalizeProps (options: Object, vm: ?Component) {
-  const props = options.props
+  const props = options.props//获取props属性
   if (!props) return
   const res = {}
   let i, val, name
-  if (Array.isArray(props)) {
+  if (Array.isArray(props)) {//props是数组形式
     i = props.length
     while (i--) {
       val = props[i]
       if (typeof val === 'string') {
+        // 作用是将中横线转驼峰
         name = camelize(val)
         res[name] = { type: null }
       } else if (process.env.NODE_ENV !== 'production') {
         warn('props must be strings when using array syntax.')
       }
     }
-  } else if (isPlainObject(props)) {
+  } else if (isPlainObject(props)) {//props是对象
     for (const key in props) {
       val = props[key]
       name = camelize(key)
@@ -335,13 +340,35 @@ function normalizeProps (options: Object, vm: ?Component) {
 function normalizeInject (options: Object, vm: ?Component) {
   const inject = options.inject
   if (!inject) return
+  // 重写了一个inject  初始值为空对象
   const normalized = options.inject = {}
-  if (Array.isArray(inject)) {
+  if (Array.isArray(inject)) {//数组
     for (let i = 0; i < inject.length; i++) {
+      // ['data']
+      // {
+      //   data: {
+      //     from: 'data'
+      //   }
+      // }
       normalized[inject[i]] = { from: inject[i] }
     }
-  } else if (isPlainObject(inject)) {
+  } else if (isPlainObject(inject)) {//对象
     for (const key in inject) {
+      // {
+      //   data: 'data',
+      //   data: {
+      //     state: true
+      //   }
+      // }
+      // {
+      //   data:{
+      //     from: 'data'
+      //   },
+      //   data:{
+      //     from: 'data',
+      //     state: true
+      //   }
+      // }
       const val = inject[key]
       normalized[key] = isPlainObject(val)
         ? extend({ from: key }, val)
@@ -382,23 +409,33 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
 }
 
 /**
- * Merge two option objects into a new one.
- * Core utility used in both instantiation and inheritance.
+ * Merge two option objects into a new one. 将两个选项对象合并为一个新对象。
+ * Core utility used in both instantiation and inheritance.  这个函数在实例化和继承的时候都有用到
+ * 注意两点：
+ *     第一，这个函数将会产生一个新的对象；
+ *     第二，这个函数不仅仅在实例化对象(即_init方法中)的时候用到，在继承(Vue.extend)中也有用到，
+ * 所以这个函数应该是一个用来合并两个选项对象为一个新对象的通用程序
  */
 export function mergeOptions (
   parent: Object,
   child: Object,
   vm?: Component
 ): Object {
+  // 在非生产环境下，会以 child 为参数调用 checkComponents 方法 检验组件名是否合理
   if (process.env.NODE_ENV !== 'production') {
     checkComponents(child)
   }
 
+  // child也可能是个函数
+  // Vue构造函数本身或由Vue.extend()创造出来的子类都有options这个属性
   if (typeof child === 'function') {
     child = child.options
   }
 
+  // 规范化 props
+  // 将不同形式的props都转换成同一种对象形式的props  方便处理
   normalizeProps(child, vm)
+  // 规范化 inject
   normalizeInject(child, vm)
   normalizeDirectives(child)
 

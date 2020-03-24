@@ -54,8 +54,25 @@ export function initMixin (Vue: Class<Component>) { //参数为vue 实例 接口
       //   }
       // })
       vm.$options = mergeOptions(
+        // 返回vm.constructor.options
+        // 若是Vue的实例则返回Vue.options
+        // Vue.options = {
+        //   components: {
+        //     KeepAlive
+        //     Transition,
+        //       TransitionGroup
+        //   },
+        //   directives:{
+        //       model,
+        //         show
+        //   },
+        //   filters: Object.create(null),
+        //   _base: Vue
+        // }
         resolveConstructorOptions(vm.constructor),
+        // new Vue()时传入的参数对象  若无则为空对象
         options || {},
+        // 当前的vue实例
         vm
       )
     }
@@ -109,17 +126,22 @@ export function initInternalComponent (vm: Component, options: InternalComponent
     opts.staticRenderFns = options.staticRenderFns
   }
 }
-
-export function resolveConstructorOptions (Ctor: Class<Component>) {
+//解析构造者的 options  
+// const Sub = Vue.extend()  会给Sub附加一个super属性并指向Vue
+export function resolveConstructorOptions (Ctor: Class<Component>) {//vm.constructor
+  
   let options = Ctor.options
+  // 函数的作用是将options返回  
+  // 但传入的实例的构造函数并不是vue 则会存在Ctor.super=vue这个属性  若是直接使用vue构造的则会直接返回vm.constructor.options
   if (Ctor.super) {
+    //递归的调用该函数
     const superOptions = resolveConstructorOptions(Ctor.super)
-    const cachedSuperOptions = Ctor.superOptions
+    const cachedSuperOptions = Ctor.superOptions //Vue.options  在Vue.extend()操作时被添加的属性  指向Vue的options
     if (superOptions !== cachedSuperOptions) {
-      // super option changed,
-      // need to resolve new options.
+      // super option changed, superOptions被修改
+      // need to resolve new options. 新属性等会被解决掉  给Ctor.superOptions重新赋值Vue.options
       Ctor.superOptions = superOptions
-      // check if there are any late-modified/attached options (#4976)
+      // check if there are any late-modified/attached options (#4976) 
       const modifiedOptions = resolveModifiedOptions(Ctor)
       // update base extend options
       if (modifiedOptions) {
@@ -133,7 +155,7 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
   }
   return options
 }
-
+// 检查是否有任何后期修改/附加的选项
 function resolveModifiedOptions (Ctor: Class<Component>): ?Object {
   let modified
   const latest = Ctor.options

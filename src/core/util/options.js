@@ -122,6 +122,15 @@ export function mergeDataOrFn (
     }
   }
 }
+// 对于 el、propsData 选项使用默认的合并策略 defaultStrat。
+// 对于 data 选项，使用 mergeDataOrFn 函数进行处理，最终结果是 data 选项将变成一个函数，且该函数的执行结果为真正的数据对象。
+// 对于 生命周期钩子 选项，将合并成数组，使得父子选项中的钩子函数都能够被执行
+// 对于 directives、filters 以及 components 等资源选项，父子选项将以原型链的形式被处理，正是因为这样我们才能够在任何地方都使用内置组件、指令等。
+// 对于 watch 选项的合并处理，类似于生命周期钩子，如果父子选项都有相同的观测字段，将被合并为数组，这样观察者都将被执行。
+// 对于 props、methods、inject、computed 选项，父选项始终可用，但是子选项会覆盖同名的父选项字段。
+// 对于 provide 选项，其合并策略使用与 data 选项相同的 mergeDataOrFn 函数。
+// 最后，以上没有提及到的选项都将使默认选项 defaultStrat。
+// 最最后，默认合并策略函数 defaultStrat 的策略是：只要子选项不是 undefined 就使用子选项，否则使用父选项。
 // 选项 data 的合并策略
 strats.data = function (
   parentVal: any,
@@ -225,20 +234,26 @@ strats.watch = function (
   if (childVal === nativeWatch) childVal = undefined
   /* istanbul ignore if */
   if (!childVal) return Object.create(parentVal || null)
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production') {//检测其是否是一个纯对象
     assertObjectType(key, childVal, vm)
   }
   if (!parentVal) return childVal
   const ret = {}
+  // 将 parentVal 的属性混合到 ret 中，后面处理的都将是 ret 对象，最后返回的也是 ret 对象
   extend(ret, parentVal)
   for (const key in childVal) {
+    // 由于遍历的是 childVal，所以 key 是子选项的 key，父选项中未必能获取到值，所以 parent 未必有值
     let parent = ret[key]
+    // child 是肯定有值的，因为遍历的就是 childVal 本身
     const child = childVal[key]
+    // 这个 if 分支的作用就是如果 parent 存在，就将其转为数组
     if (parent && !Array.isArray(parent)) {
       parent = [parent]
     }
     ret[key] = parent
+      // 最后，如果 parent 存在，此时的 parent 应该已经被转为数组了，所以直接将 child concat 进去
       ? parent.concat(child)
+      // 如果 parent 不存在，直接将 child 转为数组返回
       : Array.isArray(child) ? child : [child]
   }
   return ret
@@ -246,6 +261,7 @@ strats.watch = function (
 
 /**
  * Other object hashes.
+ * 选项 props、methods、inject、computed 的合并策略
  */
 strats.props =
 strats.methods =
@@ -256,13 +272,17 @@ strats.computed = function (
   vm?: Component,
   key: string
 ): ?Object {
+  // 如果存在 childVal，那么在非生产环境下要检查 childVal 的类型
   if (childVal && process.env.NODE_ENV !== 'production') {
     assertObjectType(key, childVal, vm)
   }
   if (!parentVal) return childVal
+  // 如果 parentVal 存在，则创建 ret 对象，然后分别将 parentVal 和 childVal 的属性混合到 ret 中
+  // 注意：由于 childVal 将覆盖 parentVal 的同名属性
   const ret = Object.create(null)
   extend(ret, parentVal)
   if (childVal) extend(ret, childVal)
+  // 最后返回 ret 对象。
   return ret
 }
 strats.provide = mergeDataOrFn

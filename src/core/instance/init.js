@@ -26,7 +26,7 @@ export function initMixin (Vue: Class<Component>) { //参数为vue 实例 接口
     //     1、组件初始化(component init)
     //     2、编译(compile)，将模板(template)编译成渲染函数
     //     3、渲染(render)，其实就是渲染函数的性能，或者说渲染函数执行且生成虚拟DOM(vnode)的性能
-    //     4、打补丁(patch)，将虚拟DOM渲染为真实DOM的性能
+    //     4、打补丁(patch)，将虚拟DOM渲染为真实DOM的性能  
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
       startTag = `vue-perf-start:${vm._uid}`
       endTag = `vue-perf-end:${vm._uid}`
@@ -134,7 +134,7 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {//vm.constru
   // 函数的作用是将options返回  
   // 但传入的实例的构造函数并不是vue 则会存在Ctor.super=vue这个属性  若是直接使用vue构造的则会直接返回vm.constructor.options
   if (Ctor.super) {
-    //递归的调用该函数
+    //递归的调用该函数  直到找到Vue的options
     const superOptions = resolveConstructorOptions(Ctor.super)
     const cachedSuperOptions = Ctor.superOptions //Vue.options  在Vue.extend()操作时被添加的属性  指向Vue的options
     if (superOptions !== cachedSuperOptions) {

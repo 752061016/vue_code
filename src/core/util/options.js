@@ -29,9 +29,10 @@ import {
 const strats = config.optionMergeStrategies
 
 /**
- * Options with restrictions
+ * Options with restrictions 
+ * 默认的合并策略
  */
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production') { //非生产模式
   strats.el = strats.propsData = function (parent, child, vm, key) {
     if (!vm) {
       warn(
@@ -44,7 +45,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 /**
- * Helper that recursively merges two data objects together.
+ * Helper that recursively merges two data objects together.深拷贝
  */
 function mergeData (to: Object, from: ?Object): Object {
   if (!from) return to
@@ -61,15 +62,18 @@ function mergeData (to: Object, from: ?Object): Object {
     toVal = to[key]
     fromVal = from[key]
     if (!hasOwn(to, key)) {
+      // 如果 from 对象中的 key 不在 to 对象中，则使用 set 函数为 to 对象设置 key 及相应的值。
       set(to, key, fromVal)
     } else if (
       toVal !== fromVal &&
       isPlainObject(toVal) &&
       isPlainObject(fromVal)
     ) {
+      // 如果 from 对象中的 key 在 to 对象中，且这两个属性的值都是纯对象则递归地调用 mergeData 函数进行深度合并。
       mergeData(toVal, fromVal)
     }
   }
+  // 将 from 对象的属性混合到 to 对象中，也可以说是将 parentVal 对象的属性混合到 childVal 中，最后返回的是处理后的 childVal 对象。
   return to
 }
 
@@ -81,8 +85,9 @@ export function mergeDataOrFn (
   childVal: any,
   vm?: Component
 ): ?Function {
-  if (!vm) {
-    // in a Vue.extend merge, both should be functions
+  if (!vm) {//子组件
+    // in a Vue.extend merge, both should be functions 选项是在调用 Vue.extend 函数时进行合并处理的，此时父子 data 选项都应该是函数
+    // 当拿不到 vm 这个参数的时候，合并操作是在 Vue.extend 中进行的，也就是在处理子组件的选项。而且此时 childVal 和 parentVal 都应该是函数
     if (!childVal) {
       return parentVal
     }
@@ -100,7 +105,7 @@ export function mergeDataOrFn (
         typeof parentVal === 'function' ? parentVal.call(this, this) : parentVal
       )
     }
-  } else {
+  } else {//vue实例  new
     return function mergedInstanceDataFn () {
       // instance merge
       const instanceData = typeof childVal === 'function'
@@ -117,13 +122,13 @@ export function mergeDataOrFn (
     }
   }
 }
-
+// 选项 data 的合并策略
 strats.data = function (
   parentVal: any,
   childVal: any,
   vm?: Component
 ): ?Function {
-  if (!vm) {
+  if (!vm) {//子组件
     if (childVal && typeof childVal !== 'function') {
       process.env.NODE_ENV !== 'production' && warn(
         'The "data" option should be a function ' +
@@ -142,18 +147,19 @@ strats.data = function (
 
 /**
  * Hooks and props are merged as arrays.
+ * 合并挂钩
  */
 function mergeHook (
   parentVal: ?Array<Function>,
   childVal: ?Function | ?Array<Function>
 ): ?Array<Function> {
-  const res = childVal
-    ? parentVal
-      ? parentVal.concat(childVal)
-      : Array.isArray(childVal)
-        ? childVal
-        : [childVal]
-    : parentVal
+  const res = childVal//是否有 childVal，即判断组件的选项中是否有对应名字的生命周期钩子函数
+    ? parentVal//如果有 childVal 则判断是否有 parentVal
+      ? parentVal.concat(childVal)//如果有 parentVal 则使用 concat 方法将二者合并为一个数组
+      : Array.isArray(childVal)//如果没有 parentVal 则判断 childVal 是不是一个数组
+        ? childVal//如果 childVal 是一个数组则直接返回
+        : [childVal]//否则将其作为数组的元素，然后返回数组
+    : parentVal//如果没有 childVal 则直接返回 parentVal
   return res
     ? dedupeHooks(res)
     : res
@@ -168,7 +174,7 @@ function dedupeHooks (hooks) {
   }
   return res
 }
-
+//生命周期挂钩  在 strats 策略对象上添加用来合并各个生命周期钩子选项的策略函数
 LIFECYCLE_HOOKS.forEach(hook => {
   strats[hook] = mergeHook
 })
@@ -188,13 +194,13 @@ function mergeAssets (
 ): Object {
   const res = Object.create(parentVal || null)
   if (childVal) {
-    process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
+    process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm) //检测 childVal 是不是一个纯对象的，如果不是纯对象会给你一个警告
     return extend(res, childVal)
   } else {
     return res
   }
 }
-
+//directives、filters 以及 components合并策略
 ASSET_TYPES.forEach(function (type) {
   strats[type + 's'] = mergeAssets
 })
@@ -204,6 +210,7 @@ ASSET_TYPES.forEach(function (type) {
  *
  * Watchers hashes should not overwrite one
  * another, so we merge them as arrays.
+ * 选项 watch 的合并策略
  */
 strats.watch = function (
   parentVal: ?Object,
@@ -212,6 +219,8 @@ strats.watch = function (
   key: string
 ): ?Object {
   // work around Firefox's Object.prototype.watch...
+  // Firefox 浏览器中 Object.prototype 拥有原生的 watch 函数  容易造成冲突
+  // 在发现watch为浏览器原生函数时重置
   if (parentVal === nativeWatch) parentVal = undefined
   if (childVal === nativeWatch) childVal = undefined
   /* istanbul ignore if */
@@ -419,6 +428,7 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
 export function mergeOptions (
   parent: Object,
   child: Object,
+  // 如果策略函数中拿不到 vm 参数，那么处理的就是子组件的选项
   vm?: Component
 ): Object {
   // 在非生产环境下，会以 child 为参数调用 checkComponents 方法 检验组件名是否合理
@@ -437,12 +447,13 @@ export function mergeOptions (
   normalizeProps(child, vm)
   // 规范化 inject
   normalizeInject(child, vm)
+  // 规范化 directives
   normalizeDirectives(child)
 
-  // Apply extends and mixins on the child options,
-  // but only if it is a raw options object that isn't
-  // the result of another mergeOptions call.
-  // Only merged options has the _base property.
+  // Apply extends and mixins on the child options,对子选项应用扩展和混合
+  // but only if it is a raw options object that isn't但前提是它是一个原始的Options对象，该对象不是
+  // the result of another mergeOptions call.另一个合并选项调用的结果
+  // Only merged options has the _base property.只有合并的选项具有_base属性。
   if (!child._base) {
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
@@ -454,17 +465,38 @@ export function mergeOptions (
     }
   }
 
+  // Vue 选项的合并
   const options = {}
   let key
+  // Vue.options = { 假如parent就是Vue.options
+  //   components: {
+  //       KeepAlive,
+  //       Transition,
+  //       TransitionGroup
+  //   },
+  //   directives:{
+  //       model,
+  //       show
+  //   },
+  //   filters: Object.create(null),
+  //   _base: Vue
+  // }
   for (key in parent) {
     mergeField(key)
   }
   for (key in child) {
+    // 其作用是用来判断一个属性是否是对象自身的属性 避免重复调用
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
   }
   function mergeField (key) {
+    // const strats = config.optionMergeStrategies
+    // 选项覆盖策略是处理如何将父选项值和子选项值合并到最终值的函数
+    // 也就是说 config.optionMergeStrategies 是一个合并选项的策略对象，这个对象下包含很多函数，这些函数就可以认为是合并特定选项的策略
+    // 这样不同的选项使用不同的合并策略，如果你使用自定义选项，那么你也可以自定义该选项的合并策略，只需要在 Vue.config.optionMergeStrategies 对象上添加与自定义选项同名的函数就行
+    // 而这就是 Vue 文档中提过的全局配置：optionMergeStrategies
+    // config.optionMergeStrategies先判断是否有该策略  若没有则查找child有无该策略  没有则使用parent策略
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }

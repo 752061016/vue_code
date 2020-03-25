@@ -200,7 +200,7 @@ function mergeAssets (
     return res
   }
 }
-//directives、filters 以及 components合并策略
+//directives、filters 以及 components合并策略 
 ASSET_TYPES.forEach(function (type) {
   strats[type + 's'] = mergeAssets
 })

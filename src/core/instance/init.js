@@ -53,6 +53,7 @@ export function initMixin (Vue: Class<Component>) { //参数为vue 实例 接口
       //     console.log(this.$options.customOption) // => 'foo'
       //   }
       // })
+      // $options 用于当前 Vue 实例的初始化选项。需要在选项中包含自定义属性时会有用处
       vm.$options = mergeOptions(
         // 返回vm.constructor.options
         // 若是Vue的实例则返回Vue.options
@@ -77,12 +78,16 @@ export function initMixin (Vue: Class<Component>) { //参数为vue 实例 接口
       )
     }
     /* istanbul ignore else */
+    // 如果是非生产环境的话则执行 initProxy(vm) 函数，如果在生产环境则直接在实例上添加 _renderProxy 实例属性，该属性的值就是当前实例
+    // vm._renderProxy 有可能是一个代理对象，即 Proxy 实例
     if (process.env.NODE_ENV !== 'production') {
+      // 作用其实就是在实例对象 vm 上添加 _renderProxy 属性
       initProxy(vm)
     } else {
       vm._renderProxy = vm
     }
     // expose real self
+    // 在 Vue 实例对象 vm 上添加了 _self 属性，指向真实的实例本身
     vm._self = vm
     initLifecycle(vm)
     initEvents(vm)

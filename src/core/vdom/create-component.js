@@ -32,7 +32,8 @@ import {
   renderRecyclableComponentTemplate
 } from 'weex/runtime/recycle-list/render-component-template'
 
-// inline hooks to be invoked on component VNodes during patch
+// inline hooks to be invoked on component VNodes during patch修补期间要在组件VNode上调用的内联挂接
+// 组件虚拟donm挂钩
 const componentVNodeHooks = {
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
     if (

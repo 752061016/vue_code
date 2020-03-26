@@ -364,13 +364,23 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
 export function callHook (vm: Component, hook: string) {
   // #7573 disable dep collection when invoking lifecycle hooks
   pushTarget()
+  // 获取要调用的生命周期钩子
   const handlers = vm.$options[hook]
   const info = `${hook} hook`
+  // handlers 就是对应生命周期钩子的数组
   if (handlers) {
     for (let i = 0, j = handlers.length; i < j; i++) {
+      // 调用handlers[i]该函数  并有错误提醒
       invokeWithErrorHandling(handlers[i], vm, null, vm, info)
     }
   }
+  // 判断是否存在生命周期钩子的事件侦听器，初始化值为 false 代表没有，当组件检测到存在生命周期钩子的事件侦听器时，会将 vm._hasHookEvent 设置为 true
+  // <child
+  //   @hook:beforeCreate="handleChildBeforeCreate"
+  //   @hook:created="handleChildCreated"
+  //   @hook:mounted="handleChildMounted"
+  //   @hook:生命周期钩子
+  // />
   if (vm._hasHookEvent) {
     vm.$emit('hook:' + hook)
   }

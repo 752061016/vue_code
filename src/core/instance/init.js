@@ -92,6 +92,9 @@ export function initMixin (Vue: Class<Component>) { //参数为vue 实例 接口
     initLifecycle(vm)
     initEvents(vm)
     initRender(vm)
+
+    // 生命周期钩子的实现方式
+    // callHook 函数的作用是调用生命周期钩子函数
     callHook(vm, 'beforeCreate')
     initInjections(vm) // resolve injections before data/props
     initState(vm)

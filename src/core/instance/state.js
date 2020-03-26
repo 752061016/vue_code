@@ -46,7 +46,9 @@ export function proxy (target: Object, sourceKey: string, key: string) {
 }
 
 export function initState (vm: Component) {
+  // 首先在 Vue 实例对象添加一个属性 vm._watchers = []，其初始值是一个数组，这个数组将用来存储所有该组件实例的 watcher 对象
   vm._watchers = []
+  // opts是实例上的参数的引用
   const opts = vm.$options
   if (opts.props) initProps(vm, opts.props)
   if (opts.methods) initMethods(vm, opts.methods)
@@ -56,6 +58,7 @@ export function initState (vm: Component) {
     observe(vm._data = {}, true /* asRootData */)
   }
   if (opts.computed) initComputed(vm, opts.computed)
+  // 对于 watch 选项仅仅判断 opts.watch 是否存在是不够的，还要判断 opts.watch 是不是原生的 watch 对象
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
   }

@@ -42,6 +42,7 @@ export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.set = function proxySetter (val) {
     this[sourceKey][key] = val
   }
+  // 通过 Object.defineProperty 函数在实例对象 vm 上定义与 data 数据字段同名的访问器属性  访问vm.num ==> vm._data.num
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
@@ -55,6 +56,8 @@ export function initState (vm: Component) {
   if (opts.data) {
     initData(vm)
   } else {
+    // observe 函数是将 data 转换成响应式数据的核心入口
+    // $data 属性是一个访问器属性，其代理的值就是 _data
     observe(vm._data = {}, true /* asRootData */)
   }
   if (opts.computed) initComputed(vm, opts.computed)
@@ -112,11 +115,22 @@ function initProps (vm: Component, propsOptions: Object) {
   toggleObserving(true)
 }
 
+// 根据 vm.$options.data 选项获取真正想要的数据（注意：此时 vm.$options.data 是函数）
+// 校验得到的数据是否是一个纯对象
+// 检查数据对象 data 上的键是否与 props 对象上的键冲突
+// 检查 methods 对象上的键是否与 data 对象上的键冲突
+// 在 Vue 实例对象上添加代理访问数据对象的同名属性
+// 最后调用 observe 函数开启响应式之路
 function initData (vm: Component) {
   let data = vm.$options.data
+  // 经过 mergeOptions 函数处理后 data 选项必然是一个函数
+  // 因为 beforeCreate 生命周期钩子函数是在 mergeOptions 函数之后 initData 之前被调用的，
+  // 如果在 beforeCreate 生命周期钩子函数中修改了 vm.$options.data 的值，那么在 initData 函数中对于 vm.$options.data 类型的判断就是必要的了
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
+  // 此时 data 变量已经不是函数了，而是最终的数据对象
+  // 判断变量 data 是不是一个纯对象  若不是纯对象则打印错误信息
   if (!isPlainObject(data)) {
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
@@ -125,7 +139,8 @@ function initData (vm: Component) {
       vm
     )
   }
-  // proxy data on instance
+  // proxy data on instance  代理
+  // 首先使用 Object.keys 函数获取 data 对象的所有键
   const keys = Object.keys(data)
   const props = vm.$options.props
   const methods = vm.$options.methods
@@ -133,6 +148,8 @@ function initData (vm: Component) {
   while (i--) {
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') {
+      // 在非生产环境下如果发现在 methods 对象上定义了同样的 key，也就是说 data 数据的 key 与 methods 对象中定义的函数名称相同，那么会打印一个警告，提示开发者
+      // Vue 是不允许在 methods 中定义与 data 字段的 key 重名的函数的
       if (methods && hasOwn(methods, key)) {
         warn(
           `Method "${key}" has already been defined as a data property.`,
@@ -140,22 +157,30 @@ function initData (vm: Component) {
         )
       }
     }
+    // 如果发现 data 数据字段的 key 已经在 props 中有定义了，那么就会打印警告
+    // 优先级的关系：props优先级 > methods优先级 > data优先级
     if (props && hasOwn(props, key)) {
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
         `Use prop default value instead.`,
         vm
       )
+    // 判断定义在 data 中的 key 是否是保留键  首字符不是$或_
+    // isReserved 函数通过判断一个字符串的第一个字符是不是 $ 或 _ 来决定其是否是保留的，Vue 是不会代理那些键名以 $ 或 _ 开头的字段的，
+    // 因为 Vue 自身的属性和方法都是以 $ 或 _ 开头的，所以这么做是为了避免与 Vue 自身的属性和方法相冲突
     } else if (!isReserved(key)) {
+      // 如果 key 既不是以 $ 开头，又不是以 _ 开头，那么将执行 proxy 函数，实现实例对象的代理访问
       proxy(vm, `_data`, key)
     }
   }
   // observe data
+  // 调用 observe 函数将 data 数据对象转换成响应式的
   observe(data, true /* asRootData */)
 }
 
 export function getData (data: Function, vm: Component): any {
   // #7573 disable dep collection when invoking data getters
+  // pushTarget  和  popTarget防止使用 props 数据初始化 data 数据时收集冗余的依赖
   pushTarget()
   try {
     return data.call(vm, vm)

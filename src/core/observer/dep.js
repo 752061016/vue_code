@@ -11,6 +11,7 @@ let uid = 0
  * directives subscribing to it.
  */
 export default class Dep {
+  // 该属性不会被实例继承， 而是直接通过类来调用  相当于定义在构造函数上的属性或方法
   static target: ?Watcher;
   id: number;
   subs: Array<Watcher>;

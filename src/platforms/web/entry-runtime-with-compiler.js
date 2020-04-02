@@ -87,12 +87,15 @@ Vue.prototype.$mount = function (
         mark('compile')
       }
 
+      // compileToFunctions 函数的作用是把传入的模板字符串(template)编译成渲染函数(render)
+      // 一个参数就是模板字符串(template)，而第二个参数则是一些选项(options)，第三个参数是当前 Vue 实例
+      // src/compiler/to-function.js
       const { render, staticRenderFns } = compileToFunctions(template, {
         outputSourceRange: process.env.NODE_ENV !== 'production',
-        shouldDecodeNewlines,
-        shouldDecodeNewlinesForHref,
-        delimiters: options.delimiters,
-        comments: options.comments
+        shouldDecodeNewlines,             // 对浏览器的怪癖做兼容
+        shouldDecodeNewlinesForHref,      // 对浏览器的怪癖做兼容
+        delimiters: options.delimiters,   // Vue 提供的默认选项
+        comments: options.comments        // Vue 提供的默认选项
       }, this)
       options.render = render
       options.staticRenderFns = staticRenderFns

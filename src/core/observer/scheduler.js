@@ -163,13 +163,18 @@ function callActivatedHooks (queue) {
  */
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
+  // has初始化时是一个空对象
+  // 当 queueWatcher 函数被调用之后，会尝试将该观察者放入队列中
+  // 并将该观察者的 id 值登记到 has 对象上作为 has 对象的属性同时将该属性值设置为 true，避免将相同的观察者重复入队
   if (has[id] == null) {
     has[id] = true
     if (!flushing) {
+      // queue 常量是一个数组，入队就是调用该数组的 push 方法将观察者添加到数组的尾部
       queue.push(watcher)
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      // 当变量 flushing 为真时，说明队列正在执行更新，为了保证观察者的执行顺序
       let i = queue.length - 1
       while (i > index && queue[i].id > watcher.id) {
         i--
@@ -179,12 +184,14 @@ export function queueWatcher (watcher: Watcher) {
     // queue the flush
     if (!waiting) {
       waiting = true
-
+      // config.async为全局配置src/core/config.js   默认所有的计算属性以异步方式进行 修改为false后会以同步的方式进行 只会在非生产环境生效
       if (process.env.NODE_ENV !== 'production' && !config.async) {
+        // 同步
         flushSchedulerQueue()
         return
       }
-      nextTick(flushSchedulerQueue)
+      // flushSchedulerQueue 函数将会在下一次事件循环开始时立即调用 异步
+      nextTick(flushSchedulerQueue)//==> setTimeout(flushSchedulerQueue, 0)
     }
   }
 }

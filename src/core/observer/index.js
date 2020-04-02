@@ -175,7 +175,7 @@ export function defineReactive (
   // 定义了 childOb 变量，我们知道，在 if 语句块里面，获取到了对象属性的值 val，
   // 但是 val 本身有可能也是一个对象，那么此时应该继续调用 observe(val) 函数观测该对象从而深度观测数据对象。
   // 条件是函数的第五个参数须为false  因为第五个参数未传值  默认是undefined  默认就是深度观测
-  // childOb === data.a.__ob__
+  // childOb === data.a.__ob__  props则会调用函数失败
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,

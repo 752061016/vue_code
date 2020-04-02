@@ -60,31 +60,42 @@ export function initState (vm: Component) {
     // $data 属性是一个访问器属性，其代理的值就是 _data
     observe(vm._data = {}, true /* asRootData */)
   }
+  // 初始化computed
   if (opts.computed) initComputed(vm, opts.computed)
   // 对于 watch 选项仅仅判断 opts.watch 是否存在是不够的，还要判断 opts.watch 是不是原生的 watch 对象
   if (opts.watch && opts.watch !== nativeWatch) {
+    // 初始化 watch 选项
     initWatch(vm, opts.watch)
   }
 }
 
 function initProps (vm: Component, propsOptions: Object) {
+  // 组件上的数据 存储着外界传递进来的 props 的值
   const propsData = vm.$options.propsData || {}
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
   const keys = vm.$options._propKeys = []
+  // isRoot 常量用来标识是否是根组件 根组件实例的 $parent 属性的值是不存在的
   const isRoot = !vm.$parent
   // root instance props should be converted
   if (!isRoot) {
+    // 类似开关  关闭深度监测功能  props的值本身是响应式的  但不会深度响应
+    // 只有当不是根组件的时候才会关闭开关，这说明如果当前组件实例是根组件的话，那么定义的 props 的值也会被定义为响应式数据
     toggleObserving(false)
   }
   for (const key in propsOptions) {
+    // 遍历props对象
     keys.push(key)
+    // 用来校验名字(key)给定的 prop 数据是否符合预期的类型  常量 value 中保存着 prop 的值
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
+      // 使用 hyphenate 将 prop 的名字转为连字符加小写的形式
       const hyphenatedKey = hyphenate(key)
+      // 判断 prop 的名字是否是保留的属性attribute
       if (isReservedAttribute(hyphenatedKey) ||
+          // 打印警告
           config.isReservedAttr(hyphenatedKey)) {
         warn(
           `"${hyphenatedKey}" is a reserved attribute and cannot be used as component prop.`,
@@ -103,12 +114,16 @@ function initProps (vm: Component, propsOptions: Object) {
         }
       })
     } else {
+      // 在 vm._props 上定义了 prop 数据
       defineReactive(props, key, value)
     }
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
+    // 只有当 key 不在组件实例对象上以及其原型链上没有定义时才会进行代理
+    // 目的是避免每次创建子组件实例时都会调用 proxy 函数去做代理
     if (!(key in vm)) {
+      // 在组件实例对象上定义与 props 同名的属性，使得我们能够通过组件实例对象直接访问 props 数据
       proxy(vm, `_props`, key)
     }
   }
@@ -193,11 +208,12 @@ export function getData (data: Function, vm: Component): any {
 }
 
 const computedWatcherOptions = { lazy: true }
-
+// 初始化Computed
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
+  // 判断是否是服务端渲染的布尔值
   const isSSR = isServerRendering()
 
   for (const key in computed) {
@@ -210,19 +226,27 @@ function initComputed (vm: Component, computed: Object) {
       )
     }
 
+    // 非服务端渲染时才会执行
     if (!isSSR) {
       // create internal watcher for the computed property.
+      // 计算属性的实现本质上和使用 methods 选项差不多
+      // watchers的引用于vm._computedWatchers相同  所以当watchers发生改变时vm._computedWatchers也会改变  实际上是由vm._computedWatchers存储计算属性观察者
       watchers[key] = new Watcher(
         vm,
         getter || noop,
         noop,
-        computedWatcherOptions
+        computedWatcherOptions //{ lazy: true }用来标识一个观察者对象是计算属性的观察者
       )
     }
 
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
+    // 初始化计算属性之前已经初始化了 props、methods 和 data 选项,并且这些选项数据都会定义在组件实例对象上
+    // 由于计算属性也需要定义在组件实例对象上，所以需要使用计算属性的名字检查组件实例对象上是否已经有了同名的定义
+    // 对于 data 和 props 来讲他们是不允许被 computed 选项中的同名属性覆盖的
+    // 检查计算属性的名字是否已经存在于组件实例对象中
+    // 触发更新时只是更新dep中的update，在初始化时，计算属性的依赖就收到了计算属性的dep并保存，在依赖发生改变时同样也会触发计算属性上watcher的update
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
@@ -240,20 +264,36 @@ export function defineComputed (
   key: string,
   userDef: Object | Function
 ) {
+  // 以下代码都是完善sharedPropertyDefinition对象的  访问器属性
+  // sharedPropertyDefinition = {
+  //   enumerable: true,
+  //   configurable: true,
+  //   get: noop,
+  //   set: noop
+  // }
   const shouldCache = !isServerRendering()
   if (typeof userDef === 'function') {
+    // 使用三元运算符检查 shouldCache 是否为真
     sharedPropertyDefinition.get = shouldCache
+      // 如果为真说明不是服务端渲染，此时会调用 createComputedGetter 函数并将其返回值作为 sharedPropertyDefinition.get 的值
       ? createComputedGetter(key)
+      // 如果 shouldCache 为假说明是服务端渲染，由于服务端渲染不需要缓存值，使用 createGetterInvoker 函数作为 sharedPropertyDefinition.get 的值
       : createGetterInvoker(userDef)
+      // 由于 userDef 是函数，这说明该计算属性并没有指定 set 拦截器函数，所以直接将其设置为空函数 noop
     sharedPropertyDefinition.set = noop
-  } else {
+  } else {//object
     sharedPropertyDefinition.get = userDef.get
+      // Object.get() 存在
       ? shouldCache && userDef.cache !== false
+        // 不是服务端渲染且userDef.cache !== false
         ? createComputedGetter(key)
         : createGetterInvoker(userDef.get)
+      // Object.get() 不存在
       : noop
     sharedPropertyDefinition.set = userDef.set || noop
   }
+  // 在非生产环境下如果发现 sharedPropertyDefinition.set 的值是一个空函数，那么说明开发者并没有为计算属性定义相应的 set 拦截器函数，这时会重写 sharedPropertyDefinition.set 函数
+  // 这样当你在代码中尝试修改一个没有指定 set 拦截器函数的计算属性的值时，就会得到一个警告信息
   if (process.env.NODE_ENV !== 'production' &&
       sharedPropertyDefinition.set === noop) {
     sharedPropertyDefinition.set = function () {
@@ -263,14 +303,32 @@ export function defineComputed (
       )
     }
   }
+
+  // computed: {
+  //   someComputedProp () {
+  //     return this.a + this.b
+  //   }
+  // }
+  // 在非服务端渲染的情况下会转换成：
+  // sharedPropertyDefinition = {
+  //   enumerable: true,
+  //   configurable: true,
+  //   get: createComputedGetter(key),
+  //   set: noop // 没有指定 userDef.set 所以是空函数
+  // }
+  
   Object.defineProperty(target, key, sharedPropertyDefinition)
+  // 在触发计算属性更新时 get只是返回了一个函数但并未执行 并把返回的函数保存在 this.value中  在createComputedGetter最后返回
 }
 
-function createComputedGetter (key) {
+function createComputedGetter (key) { // key为函数名
+  // 当计算属性被读取时，computedGetter 函数将会执行
   return function computedGetter () {
-    const watcher = this._computedWatchers && this._computedWatchers[key]
+    // 定义了 watcher 常量，它的值为计算属性的观察者对象
+    const watcher = this._computedWatchers && this._computedWatchers[key] 
     if (watcher) {
-      if (watcher.dirty) {
+      // 该观察者对象存在，则会分别执行观察者对象的 depend 方法和 evaluate 方法
+      if (watcher.dirty) { // 判断是否为计算属性
         watcher.evaluate()
       }
       if (Dep.target) {
@@ -291,6 +349,7 @@ function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
   for (const key in methods) {
     if (process.env.NODE_ENV !== 'production') {
+      // 检测该值是否为函数
       if (typeof methods[key] !== 'function') {
         warn(
           `Method "${key}" has type "${typeof methods[key]}" in the component definition. ` +
@@ -298,12 +357,14 @@ function initMethods (vm: Component, methods: Object) {
           vm
         )
       }
+      // 存在props且函数名与props重名
       if (props && hasOwn(props, key)) {
         warn(
           `Method "${key}" has already been defined as a prop.`,
           vm
         )
       }
+      // 该键已在实例上定义且 key 为保留的属性名（以字符 $ 或 _ 开头的名字为保留名，可能与$data这些原生内置属性重名）
       if ((key in vm) && isReserved(key)) {
         warn(
           `Method "${key}" conflicts with an existing Vue instance method. ` +
@@ -311,13 +372,16 @@ function initMethods (vm: Component, methods: Object) {
         )
       }
     }
+    // 在组件实例对象上定义了与 methods 选项中所定义的同名方法，当然了在定义到组件实例对象之前要检测该方法是否真正的有定义：methods[key] == null，如果没有则添加一个空函数到组件实例对象上
     vm[key] = typeof methods[key] !== 'function' ? noop : bind(methods[key], vm)
   }
 }
 
 function initWatch (vm: Component, watch: Object) {
+  // 通过对 watch 选项遍历，然后通过 createWatcher 函数创建观察者对象的
   for (const key in watch) {
     const handler = watch[key]
+    // handler 常量可以是一个数组 数组中包括多个函数 在观测发生改变时会依次执行
     if (Array.isArray(handler)) {
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])
@@ -334,10 +398,18 @@ function createWatcher ( //创建监听者 vm实例
   handler: any,
   options?: Object
 ) {
+  // vm.$watch('name', {
+  //   handler () {
+  //     console.log('change')
+  //   },
+  //   immediate: true
+  // })
+  // 将纯对象形式的参数规范化一下，然后再通过 $watch 方法创建观察者
   if (isPlainObject(handler)) { //为对象
     options = handler
     handler = handler.handler
   }
+  // handler为字符串  则在vue实例上查找该方法
   if (typeof handler === 'string') {
     handler = vm[handler]
   }
@@ -370,26 +442,37 @@ export function stateMixin (Vue: Class<Component>) {
   Vue.prototype.$set = set  //../observer/index
   Vue.prototype.$delete = del //../observer/index
 
-  Vue.prototype.$watch = function ( //观察 Vue 实例上的一个表达式或者一个函数计算结果的变化。回调函数得到的参数为新值和旧值。表达式只接受监督的键路径。
+  //观察 Vue 实例上的一个表达式或者一个函数计算结果的变化。回调函数得到的参数为新值和旧值。表达式只接受监督的键路径。
+  // 允许我们观察数据对象的某个属性，当属性变化时执行回调
+  Vue.prototype.$watch = function ( 
     expOrFn: string | Function,
     cb: any,
     options?: Object
   ): Function {
+    // 当前组件实例对象
     const vm: Component = this
     if (isPlainObject(cb)) {//简单对象  参数为对象
       return createWatcher(vm, expOrFn, cb, options)
     }
+    // cb为函数
     options = options || {}
     options.user = true
+    // options = {
+    //   ...
+    //   user: true
+    // }
     const watcher = new Watcher(vm, expOrFn, cb, options) // 创建监听器
     if (options.immediate) { //immediate为true  该回调将会在侦听开始之后被立即调用
       try {
+        // 此时回调函数的参数只有新值没有旧值。同时取值的方式是通过前面创建的观察者实例对象的 watcher.value 属性
+        // 观察者实例对象的 value 属性，保存着被观察属性的值
         cb.call(vm, watcher.value)
       } catch (error) {
         handleError(error, vm, `callback for immediate watcher "${watcher.expression}"`)
       }
     }
     return function unwatchFn () {
+      // $watch 函数返回一个函数，这个函数的执行会解除当前观察者对属性的观察
       watcher.teardown()
     }
   }

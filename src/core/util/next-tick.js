@@ -30,6 +30,7 @@ function flushCallbacks () {
 // where microtasks have too high a priority and fire in between supposedly
 // sequential events (e.g. #4521, #6690, which have workarounds)
 // or even between bubbling of the same event (#6566).
+// 它的初始值是 undefined
 let timerFunc
 
 // The nextTick behavior leverages the microtask queue, which can be accessed
@@ -40,7 +41,10 @@ let timerFunc
 // Promise is available, we will use it:
 /* istanbul ignore next, $flow-disable-line */
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
+  // 如果支持则优先使用 Promise 注册 microtask
+  // 定义常量 p 它的值是一个立即 resolve 的 Promise 实例对象
   const p = Promise.resolve()
+  // 接着将变量 timerFunc 定义为一个函数 这个函数的执行将会把 timerFunc 函数注册为 microtask
   timerFunc = () => {
     p.then(flushCallbacks)
     // In problematic UIWebViews, Promise.then doesn't completely break, but
@@ -48,10 +52,12 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
     // microtask queue but the queue isn't being flushed, until the browser
     // needs to do some other work, e.g. handle a timer. Therefore we can
     // "force" the microtask queue to be flushed by adding an empty timer.
+    // 没有被刷新,生成一个空函数来间接触发刷新
     if (isIOS) setTimeout(noop)
   }
   isUsingMicroTask = true
-} else if (!isIE && typeof MutationObserver !== 'undefined' && (
+  // 不是IE浏览器  MutationObserver存在  
+} else if (!isIE && typeof MutationObserver !== 'undefined' && ( 
   isNative(MutationObserver) ||
   // PhantomJS and iOS 7.x
   MutationObserver.toString() === '[object MutationObserverConstructor]'
@@ -70,6 +76,7 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
     textNode.data = String(counter)
   }
   isUsingMicroTask = true
+  // setImmediate方法可用
 } else if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
   // Fallback to setImmediate.
   // Technically it leverages the (macro) task queue,
@@ -79,6 +86,7 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   }
 } else {
   // Fallback to setTimeout.
+  // 最后的备选方案  使用setTimeOut处理
   timerFunc = () => {
     setTimeout(flushCallbacks, 0)
   }
@@ -94,14 +102,18 @@ export function nextTick (cb?: Function, ctx?: Object) {
         handleError(e, ctx, 'nextTick')
       }
     } else if (_resolve) {
+      // 调用 _resolve 函数，这个函数就是返回的 Promise 实例对象的 resolve 函数
       _resolve(ctx)
     }
   })
+  // 代表回调队列是否处于等待刷新的状态，初始值是 false 代表回调队列为空不需要等待刷新
   if (!pending) {
     pending = true
     timerFunc()
   }
   // $flow-disable-line
+  // 当函数未传回调函数cb时 检测是否支持promise
+  // 如果支持则直接返回一个 Promise 实例对象，并且将 resolve 函数赋值给 _resolve 变量
   if (!cb && typeof Promise !== 'undefined') {
     return new Promise(resolve => {
       _resolve = resolve

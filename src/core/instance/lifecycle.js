@@ -165,14 +165,17 @@ export function lifecycleMixin (Vue: Class<Component>) { //生命周期混入
     }
   }
 }
-
+// 编译模板
 export function mountComponent (
-  vm: Component,
-  el: ?Element,
-  hydrating?: boolean
+  vm: Component,// 组件实例 vm
+  el: ?Element, // 挂载元素 el
+  hydrating?: boolean // 透传过来的 hydrating 参数
 ): Component {
+  // 在组件实例对象上添加 $el 属性，其值为挂载元素 el
   vm.$el = el
+  // 首先检查渲染函数是否存在
   if (!vm.$options.render) {
+    // 此时渲染函数的作用将仅仅渲染一个空的 vnode 对象
     vm.$options.render = createEmptyVNode
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
@@ -192,10 +195,15 @@ export function mountComponent (
       }
     }
   }
+  // 执行了 callHook 函数，触发 beforeMount 生命周期钩子
   callHook(vm, 'beforeMount')
+  // 在触发 beforeMount 生命周期钩子之后，组件将开始挂载工作
 
+  // 这段代码的作用只有一个，即定义并初始化 updateComponent 函数
+  // 这个函数将用作创建 Watcher 实例时传递给 Watcher 构造函数的第二个参数
   let updateComponent
   /* istanbul ignore if */
+  // 在满足该条件的情况下会做一些性能统计
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
     updateComponent = () => {
       const name = vm._name
@@ -214,6 +222,10 @@ export function mountComponent (
       measure(`vue ${name} patch`, startTag, endTag)
     }
   } else {
+    // vm._render 函数的作用是调用 vm.$options.render 函数并返回生成的虚拟节点(vnode)
+    // vm._update 函数的作用是把 vm._render 函数生成的虚拟节点渲染成真正的 DOM
+    // 作用是以 vm._render() 函数的返回值作为第一个参数调用 vm._update() 函数,
+    // updateComponent 函数的作用就是：把渲染函数生成的虚拟DOM渲染成真正的DOM
     updateComponent = () => {
       vm._update(vm._render(), hydrating)
     }

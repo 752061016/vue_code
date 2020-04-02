@@ -111,6 +111,7 @@ export function initMixin (Vue: Class<Component>) { //参数为vue 实例 接口
     }
 
     if (vm.$options.el) {
+      // 将组件挂载到给定元素
       vm.$mount(vm.$options.el)
     }
   }

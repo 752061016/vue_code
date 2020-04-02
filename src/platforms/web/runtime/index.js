@@ -43,10 +43,14 @@ Vue.prototype.__patch__ = inBrowser ? patch : noop
 // public mount method 
 // 如果 Vue 实例在实例化时没有收到 el 选项，则它处于“未挂载”状态，没有关联的 DOM 元素。可以使用 vm.$mount() 手动地挂载一个未挂载的实例
 Vue.prototype.$mount = function (
-  el?: string | Element,
-  hydrating?: boolean
+  el?: string | Element,// 可以是一个字符串也可以是一个 DOM 元素
+  hydrating?: boolean// 用于 Virtual DOM 的补丁算法
 ): Component {
+  // 检测是否传递了 el 选项，如果传递了 el 选项则会接着判断 inBrowser 是否为真，即当前宿主环境是否是浏览器
+  // 如果在浏览器中则将 el 透传给 query 函数并用返回值重写 el 变量，否则 el 将被重写为 undefined
+  // 在浏览器环境下， el 变量将存储着 DOM 元素
   el = el && inBrowser ? query(el) : undefined
+  // 调用了 mountComponent 函数完成真正的挂载工作，并返回(return)其运行结果
   return mountComponent(this, el, hydrating)
 }
 

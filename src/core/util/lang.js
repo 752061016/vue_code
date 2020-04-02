@@ -30,13 +30,19 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
 /**
  * Parse simple path.
  */
+
 const bailRE = new RegExp(`[^${unicodeRegExp.source}.$_\\d]`)
 export function parsePath (path: string): any {
   if (bailRE.test(path)) {
+    // 不是 \w，也就是说这个位置不能是 字母 或 数字 或 下划线
+    // 不是字符 .
+    // 不是字符 $
     return
   }
+  // 分割 path 字符串产生的数组
   const segments = path.split('.')
   return function (obj) {
+    // 遍历 segments 数组循环访问 path 指定的属性值。这样就触发了数据属性的 get 拦截器函数
     for (let i = 0; i < segments.length; i++) {
       if (!obj) return
       obj = obj[segments[i]]
